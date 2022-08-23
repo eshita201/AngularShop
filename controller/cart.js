@@ -131,7 +131,7 @@ exports.updateCart = (req,res)=>{
         Deliverystatus: req.body.Deliverystatus,
         paymentId: req.body.paymentId}};
     let totalAmount = 0;    
-    Cart.updateMany({userid: req.body.userid},updateCart).then(data=>{
+    Cart.updateMany({userid: req.body.userid,paymentStatus:''},updateCart).then(data=>{
         if(!data){
             console.log("cart not updated");
          }else{
