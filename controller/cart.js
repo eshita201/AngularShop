@@ -7,15 +7,19 @@ exports.addproductstocart = async (req,res)=>{
     var Pquantity=1;
     var user = await Users.findOne({ _id: userId }).lean()
     var product = await Products.findOne({ _id: productId }).lean()
-    const Checkcart = await Cart.findOne({productId : product._id }).lean()
+    const Checkcart = await Cart.findOne({productId : product._id , 
+        userid: req.body.userid,
+        Deliverystatus: ''}).lean()
     if(Checkcart){
         Pquantity =  parseInt(1 + Checkcart.quantity) ;
     }else{
         Pquantity = 1;
     }
+    console.log("user",user);
     console.log("check the value in user ", user.totalAmount)
     let totalAmount = user.totalAmount;
-    //let updateAmount = {$set : {totalAmount: Pquantity*product.Price + totalAmount   }};
+    console.log(Pquantity,", ", product.Price ," , " ,product.Price + totalAmount );
+    let updateAmount = {$set : {totalAmount: product.Price + totalAmount   }};
    
     const cart =new Cart({
         productId: product._id,
@@ -39,7 +43,7 @@ exports.addproductstocart = async (req,res)=>{
                 if(!data){
                     res.status(404).send({ message : `Cannot Update product with  Maybe product not found!`})
                 }else{
-                    let updateAmount = {$set : {totalAmount: Pquantity*product.Price   }};
+                    let updateAmount = {$set : {totalAmount:product.Price   + totalAmount }};
    
                   Users.updateOne({_id:user._id},updateAmount).then(data=>{
                         if(!data){
@@ -158,4 +162,40 @@ exports.displayorders = (req,res)=>{
     })
 
 
+}
+
+exports.deletefromCart =    async(req,res)=>{
+   const userid= req.params.userid;
+   const productid=  req.params.productid;
+   console.log(" usersid productid ",userid , ", ",productid );
+
+   const Checkcart = await Cart.find({productId : req.params.productid , 
+    userid: req.params.userid,"paymentStatus": ''}).lean()
+    const Checkuser = await Users.find({_id: req.params.userid}).lean()
+    console.log("Checkcart:=  ",Checkcart[0].quantity-1);  
+   let updatequantity= {$set : {quantity: (Checkcart[0].quantity-1) }};
+   let updateAmount= {$set : {totalAmount: (Checkuser[0].totalAmount-Checkcart[0].price) }};
+    console.log("check user amount initial",Checkuser[0]);
+    console.log("check user amount ",Checkuser[0].totalAmount-Checkcart[0].price);
+      
+   //console.log("Checkcart type :=  ",typeof(Checkcart[0].quantity-1)); 
+   
+    if((Checkcart[0].quantity-1)===0){
+        Cart.deleteOne({paymentStatus: '' , userid:req.params.userid ,
+         productId:  req.params.productid })  .then(cart => {
+    //res.send(cart)
+    })
+    } else {
+        Cart.updateOne({paymentStatus: '' , userid:req.params.userid ,
+        productId:  req.params.productid },updatequantity)  .then(cart => {
+        //res.send(cart)
+        })
+
+    } 
+   
+   
+    Users.updateOne({ _id:req.params.userid  },updateAmount)  .then(user => {
+     //res.send(cart)
+     })
+   //res.send({userid, productid})
 }
